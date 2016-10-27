@@ -1,0 +1,14 @@
+version: "2.0"
+
+test:
+  image: golang:1.6.2
+  script:
+  - export GOPATH=$PWD
+  - export PATH=$PATH:$GOPATH/bin
+  - go get -t github.com/xuzhenglun/meddler
+  - go vet github.com/xuzhenglun/meddler
+  - go get -v github.com/marinbek/gocov-xml
+  - go get -v github.com/axw/gocov/gocov
+  - go install github.com/axw/gocov/gocov
+  - go install github.com/marinbek/gocov-xml
+  - gocov test -v github.com/xuzhenglun/meddler | gocov-xml > $TEST_COVERAGE

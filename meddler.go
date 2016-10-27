@@ -5,6 +5,7 @@ import (
 	"compress/gzip"
 	"encoding/gob"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
@@ -86,7 +87,7 @@ func (elt TimeMeddler) PreRead(fieldAddr interface{}) (scanTarget interface{}, e
 		return fieldAddr, nil
 	case **time.Time:
 		if elt.ZeroIsNull {
-			return nil, fmt.Errorf("meddler.TimeMeddler cannot be used on a *time.Time field, only time.Time")
+			return nil, errors.New("meddler.TimeMeddler cannot be used on a *time.Time field, only time.Time")
 		}
 		return fieldAddr, nil
 	default:
@@ -120,7 +121,7 @@ func (elt TimeMeddler) PostRead(fieldAddr, scanTarget interface{}) error {
 
 	case **time.Time:
 		if elt.ZeroIsNull {
-			return fmt.Errorf("meddler TimeMeddler cannot be used on a *time.Time field, only time.Time")
+			return errors.New("meddler TimeMeddler cannot be used on a *time.Time field, only time.Time")
 		}
 		src := scanTarget.(**time.Time)
 		if *src == nil {
@@ -226,7 +227,7 @@ func (zip JSONMeddler) PreRead(fieldAddr interface{}) (scanTarget interface{}, e
 func (zip JSONMeddler) PostRead(fieldAddr, scanTarget interface{}) error {
 	ptr := scanTarget.(*[]byte)
 	if ptr == nil {
-		return fmt.Errorf("JSONMeddler.PostRead: nil pointer")
+		return errors.New("JSONMeddler.PostRead: nil pointer")
 	}
 	raw := *ptr
 
@@ -293,7 +294,7 @@ func (zip GobMeddler) PreRead(fieldAddr interface{}) (scanTarget interface{}, er
 func (zip GobMeddler) PostRead(fieldAddr, scanTarget interface{}) error {
 	ptr := scanTarget.(*[]byte)
 	if ptr == nil {
-		return fmt.Errorf("GobMeddler.PostRead: nil pointer")
+		return errors.New("GobMeddler.PostRead: nil pointer")
 	}
 	raw := *ptr
 

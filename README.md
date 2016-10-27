@@ -1,4 +1,4 @@
-Meddler [![Build Status](https://travis-ci.org/russross/meddler.svg?branch=master)](https://travis-ci.org/russross/meddler)
+Meddler [![Build Status](https://travis-ci.org/xuzhenglun/meddler.svg?branch=master)](https://travis-ci.org/xuzhenglun/meddler) [![Test Status](http://ci.daocloud.io/api/badge/test/daocloud/meddler)](https://dashboard.daocloud.io/orgs/daocloud/build-flows/baf0c737-1686-41e2-b8c2-80f653445003) [![Coverage](http://ci.daocloud.io/api/badge/coverage/daocloud/meddler?criteria=line-rate)](https://dashboard.daocloud.io/orgs/daocloud/build-flows/baf0c737-1686-41e2-b8c2-80f653445003)
 =======
 
 Meddler is a small toolkit to take some of the tedium out of moving data

@@ -16,6 +16,12 @@ type ItemGob struct {
 	StuffZ map[string]bool `meddler:"stuffz,gobgzip"`
 }
 
+type UuidJson struct {
+	ID   string `meddler:"id,pk"`
+	Name string `meddler:"name"`
+	Age  int    `meddler:"age"`
+}
+
 func TestJsonMeddler(t *testing.T) {
 	once.Do(setup)
 
@@ -108,6 +114,50 @@ func TestGobMeddler(t *testing.T) {
 		t.Errorf("contents of stuffz wrong: %v", elt.StuffZ)
 	}
 	if _, err := db.Exec("delete from `item`"); err != nil {
+		t.Errorf("error wiping item table: %v", err)
+	}
+}
+
+func Test_UUID(t *testing.T) {
+	once.Do(setup)
+
+	man := UuidJson{
+		Name: "Tom",
+		Age:  18,
+	}
+
+	if err := Save(db, "men", &man); err != nil {
+		t.Errorf("Save error: %v", err)
+	}
+
+	if man.ID == "" {
+		t.Error("Save error: pk should not be empty")
+	}
+
+	others := UuidJson{}
+	if err := Load(db, "men", &others, man.ID); err != nil {
+		t.Error("Load error: ", err)
+	}
+
+	if others.Age != man.Age || others.Name != man.Name {
+		t.Errorf("Load error: %#v <=> %#v", man, others)
+	}
+
+	man.Age++
+	another := UuidJson{}
+	if err := Save(db, "men", &man); err != nil {
+		t.Errorf("Save error: %v", err)
+	}
+
+	if err := Load(db, "men", &another, man.ID); err != nil {
+		t.Error("Load error: ", err)
+	}
+
+	if others.Age+1 != another.Age || others.Name != another.Name {
+		t.Errorf("Load error: %#v <=> %#v", man, others)
+	}
+
+	if _, err := db.Exec("delete from `men`"); err != nil {
 		t.Errorf("error wiping item table: %v", err)
 	}
 }
