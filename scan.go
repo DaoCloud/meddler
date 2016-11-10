@@ -244,7 +244,8 @@ func (d *Database) PrimaryKey(src interface{}) (p *primaryKey, err error) {
 	}
 
 	if data.pk == "" {
-		return nil, nil
+		p.valueType = pkInt
+		return p, nil
 	}
 
 	p.key = data.pk
