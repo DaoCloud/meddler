@@ -52,7 +52,7 @@ func (d *Database) placeholder(n int) string {
 }
 
 // Debug enables debug mode, where unused columns and struct fields will be logged
-var Debug = true
+var Debug = false
 
 type structField struct {
 	column     string
