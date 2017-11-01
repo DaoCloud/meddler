@@ -1,6 +1,7 @@
 package meddler
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -30,14 +31,14 @@ func DriverErr(err error) (error, bool) {
 
 // DB is a generic database interface, matching both *sql.Db and *sql.Tx
 type DB interface {
-	Exec(query string, args ...interface{}) (sql.Result, error)
-	Query(query string, args ...interface{}) (*sql.Rows, error)
-	QueryRow(query string, args ...interface{}) *sql.Row
+	ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...interface{}) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row
 }
 
-// Load loads a record using a query for the primary key field.
+// LoadContext loads a record using a query for the primary key field.
 // Returns sql.ErrNoRows if not found.
-func (d *Database) Load(db DB, table string, dst interface{}, pk interface{}) error {
+func (d *Database) LoadContext(ctx context.Context, db DB, table string, dst interface{}, pk interface{}) error {
 	columns, err := d.ColumnsQuoted(dst, true)
 	if err != nil {
 		return err
@@ -55,7 +56,7 @@ func (d *Database) Load(db DB, table string, dst interface{}, pk interface{}) er
 	// run the query
 	q := fmt.Sprintf("SELECT %s FROM %s WHERE %s = %s", columns, d.quoted(table), d.quoted(p.key), d.Placeholder)
 
-	rows, err := db.Query(q, pk)
+	rows, err := db.QueryContext(ctx, q, pk)
 	if err != nil {
 		return &dbErr{msg: "meddler.Load: DB error in Query", err: err}
 	}
@@ -64,16 +65,16 @@ func (d *Database) Load(db DB, table string, dst interface{}, pk interface{}) er
 	return d.ScanRow(rows, dst)
 }
 
-// Load using the Default Database type
-func Load(db DB, table string, dst interface{}, pk interface{}) error {
-	return Default.Load(db, table, dst, pk)
+// LoadContext using the Default Database type
+func LoadContext(ctx context.Context, db DB, table string, dst interface{}, pk interface{}) error {
+	return Default.LoadContext(ctx, db, table, dst, pk)
 }
 
-// Insert performs an INSERT query for the given record.
+// InsertContext performs an INSERT query for the given record.
 // If the record has a primary key flagged, it must be zero, and it
 // will be set to the newly-allocated primary key value from the database
 // as returned by LastInsertId.
-func (d *Database) Insert(db DB, table string, src interface{}) error {
+func (d *Database) InsertContext(ctx context.Context, db DB, table string, src interface{}) error {
 	pk, err := d.PrimaryKey(src)
 	if err != nil {
 		return err
@@ -108,7 +109,7 @@ func (d *Database) Insert(db DB, table string, src interface{}) error {
 	if pk.valueType == pkInt && d.UseReturningToGetID && pk.key != "" {
 		q += " RETURNING " + d.quoted(pk.key)
 		var newPk int64
-		err := db.QueryRow(q, values...).Scan(&newPk)
+		err := db.QueryRowContext(ctx, q, values...).Scan(&newPk)
 		if err != nil {
 			return &dbErr{msg: "meddler.Insert: DB error in QueryRow", err: err}
 		}
@@ -116,7 +117,7 @@ func (d *Database) Insert(db DB, table string, src interface{}) error {
 			return fmt.Errorf("meddler.Insert: Error saving updated pk: %v", err)
 		}
 	} else if pk.valueType == pkInt && pk.key != "" {
-		result, err := db.Exec(q, values...)
+		result, err := db.ExecContext(ctx, q, values...)
 		if err != nil {
 			return &dbErr{msg: "meddler.Insert: DB error in Exec", err: err}
 		}
@@ -131,7 +132,7 @@ func (d *Database) Insert(db DB, table string, src interface{}) error {
 		}
 	} else {
 		// no primary key, so no need to lookup new value
-		_, err := db.Exec(q, values...)
+		_, err := db.ExecContext(ctx, q, values...)
 		if err != nil {
 			return &dbErr{msg: "meddler.Insert: DB error in Exec", err: err}
 		}
@@ -140,15 +141,15 @@ func (d *Database) Insert(db DB, table string, src interface{}) error {
 	return nil
 }
 
-// Insert using the Default Database type
-func Insert(db DB, table string, src interface{}) error {
-	return Default.Insert(db, table, src)
+// InsertContext using the Default Database type
+func InsertContext(ctx context.Context, db DB, table string, src interface{}) error {
+	return Default.InsertContext(ctx, db, table, src)
 }
 
-// Update performs and UPDATE query for the given record.
+// UpdateContext performs and UPDATE query for the given record.
 // The record must have an integer primary key field that is non-zero,
 // and it will be used to select the database row that gets updated.
-func (d *Database) Update(db DB, table string, src interface{}) error {
+func (d *Database) UpdateContext(ctx context.Context, db DB, table string, src interface{}) error {
 	// gather the query parts
 	names, err := d.Columns(src, false)
 	if err != nil {
@@ -190,43 +191,43 @@ func (d *Database) Update(db DB, table string, src interface{}) error {
 		values = append(values, pk.valueString)
 	}
 
-	if _, err := db.Exec(q, values...); err != nil {
+	if _, err := db.ExecContext(ctx, q, values...); err != nil {
 		return &dbErr{msg: "meddler.Update: DB error in Exec", err: err}
 	}
 
 	return nil
 }
 
-// Update using the Default Database type
-func Update(db DB, table string, src interface{}) error {
-	return Default.Update(db, table, src)
+// UpdateContext using the Default Database type
+func UpdateContext(ctx context.Context, db DB, table string, src interface{}) error {
+	return Default.UpdateContext(ctx, db, table, src)
 }
 
-// Save performs an INSERT or an UPDATE, depending on whether or not
+// SaveContext performs an INSERT or an UPDATE, depending on whether or not
 // a primary keys exists and is non-zero.
-func (d *Database) Save(db DB, table string, src interface{}) error {
+func (d *Database) SaveContext(ctx context.Context, db DB, table string, src interface{}) error {
 	p, err := d.PrimaryKey(src)
 	if err != nil {
 		return err
 	}
 
 	if !p.empty() {
-		return d.Update(db, table, src)
+		return d.UpdateContext(ctx, db, table, src)
 	}
-	return d.Insert(db, table, src)
+	return d.InsertContext(ctx, db, table, src)
 }
 
-// Save using the Default Database type
-func Save(db DB, table string, src interface{}) error {
-	return Default.Save(db, table, src)
+// SaveContext using the Default Database type
+func SaveContext(ctx context.Context, db DB, table string, src interface{}) error {
+	return Default.SaveContext(ctx, db, table, src)
 }
 
-// QueryOne performs the given query with the given arguments, scanning a
+// QueryRowContext performs the given query with the given arguments, scanning a
 // single row of results into dst. Returns sql.ErrNoRows if there was no
 // result row.
-func (d *Database) QueryRow(db DB, dst interface{}, query string, args ...interface{}) error {
+func (d *Database) QueryRowContext(ctx context.Context, db DB, dst interface{}, query string, args ...interface{}) error {
 	// perform the query
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -235,16 +236,16 @@ func (d *Database) QueryRow(db DB, dst interface{}, query string, args ...interf
 	return d.ScanRow(rows, dst)
 }
 
-// QueryRow using the Default Database type
-func QueryRow(db DB, dst interface{}, query string, args ...interface{}) error {
-	return Default.QueryRow(db, dst, query, args...)
+// QueryRowContext using the Default Database type
+func QueryRowContext(ctx context.Context, db DB, dst interface{}, query string, args ...interface{}) error {
+	return Default.QueryRowContext(ctx, db, dst, query, args...)
 }
 
-// QueryAll performs the given query with the given arguments, scanning
+// QueryAllContext performs the given query with the given arguments, scanning
 // all results rows into dst.
-func (d *Database) QueryAll(db DB, dst interface{}, query string, args ...interface{}) error {
+func (d *Database) QueryAllContext(ctx context.Context, db DB, dst interface{}, query string, args ...interface{}) error {
 	// perform the query
-	rows, err := db.Query(query, args...)
+	rows, err := db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}
@@ -253,7 +254,7 @@ func (d *Database) QueryAll(db DB, dst interface{}, query string, args ...interf
 	return d.ScanAll(rows, dst)
 }
 
-// QueryAll using the Default Database type
-func QueryAll(db DB, dst interface{}, query string, args ...interface{}) error {
-	return Default.QueryAll(db, dst, query, args...)
+// QueryAllContext using the Default Database type
+func QueryAllContext(ctx context.Context, db DB, dst interface{}, query string, args ...interface{}) error {
+	return Default.QueryAllContext(ctx, db, dst, query, args...)
 }
