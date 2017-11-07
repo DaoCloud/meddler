@@ -1,6 +1,7 @@
 package meddler
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -20,6 +21,10 @@ type UuidJson struct {
 	ID   string `meddler:"id,pk"`
 	Name string `meddler:"name"`
 	Age  int    `meddler:"age"`
+}
+
+func init() {
+	SetTagMapper(strings.ToLower)
 }
 
 func TestJsonMeddler(t *testing.T) {

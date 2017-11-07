@@ -14,6 +14,18 @@ import (
 // the name of our struct tag
 const tagName = "meddler"
 
+var tagMapper struct {
+	modified bool
+	mapper   func(string) string
+}
+
+func SetTagMapper(mapper func(string) string) {
+	tagMapper = struct {
+		modified bool
+		mapper   func(string) string
+	}{modified: true, mapper: mapper}
+}
+
 // Database contains database-specific options.
 // MySQL, PostgreSQL, and SQLite are provided for convenience.
 // Setting Default to any of these lets you use the package-level convenience functions.
@@ -139,6 +151,9 @@ func getFields(dstType reflect.Type) (*structData, error) {
 
 		// default to the field name
 		name := f.Name
+		if tagMapper.modified {
+			name = tagMapper.mapper(f.Name)
+		}
 
 		// the tag can override the field name
 		if len(tag) > 0 && tag[0] != "" {

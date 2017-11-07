@@ -3,13 +3,14 @@ package meddler
 import (
 	"database/sql"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"reflect"
 	"sort"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 var once sync.Once
@@ -17,12 +18,12 @@ var db *sql.DB
 var when = time.Date(2013, 6, 23, 15, 30, 12, 0, time.UTC)
 
 type Person struct {
-	ID        int64  `meddler:"id,pk"`
-	Name      string `meddler:"name"`
+	ID        int64      `meddler:"id,pk"`
+	Name      string     `meddler:"name"`
 	private   int
-	Email     string
+	Email     string     `meddler:"Email"`
 	Ephemeral int        `meddler:"-"`
-	Age       int        `meddler:",zeroisnull"`
+	Age       int        `meddler:"Age,zeroisnull"`
 	Opened    time.Time  `meddler:"opened,utctime"`
 	Closed    time.Time  `meddler:"closed,utctimez"`
 	Updated   *time.Time `meddler:"updated,localtime"`
@@ -30,7 +31,7 @@ type Person struct {
 }
 
 type HalfPerson struct {
-	ID        int64 `meddler:"id,pk"`
+	ID        int64      `meddler:"id,pk"`
 	private   int
 	Ephemeral int        `meddler:"-"`
 	Age       int        `meddler:",zeroisnull"`
@@ -39,12 +40,12 @@ type HalfPerson struct {
 }
 
 type UintPerson struct {
-	ID        uint64 `meddler:"id,pk"`
-	Name      string `meddler:"name"`
+	ID        uint64     `meddler:"id,pk"`
+	Name      string     `meddler:"name"`
 	private   int
-	Email     string
+	Email     string     `meddler:"Email"`
 	Ephemeral int        `meddler:"-"`
-	Age       int        `meddler:",zeroisnull"`
+	Age       int        `meddler:"Age,zeroisnull"`
 	Opened    time.Time  `meddler:"opened,utctime"`
 	Closed    time.Time  `meddler:"closed,utctimez"`
 	Updated   *time.Time `meddler:"updated,localtime"`
